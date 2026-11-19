@@ -1,0 +1,740 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated electrical engineering researcher profile, academic details, login metadata, and consent state isolated to owner and authorized admins.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID matching document ID and owner"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Full name displayed on lab reports"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 200,
+          "description": "Verified account email (private PII)"
+        },
+        "university": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180,
+          "description": "Academic institution name"
+        },
+        "department": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Academic department (e.g. Electrical Engineering)"
+        },
+        "studentId": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "University roll number or researcher registration ID"
+        },
+        "semester": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Current academic semester or cohort"
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Optional avatar URL from auth provider"
+        },
+        "providerId": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Authentication provider ID (e.g. google.com)"
+        },
+        "consentGiven": {
+          "type": "boolean",
+          "description": "Explicit user consent to log profile and circuit progress to the admin dashboard"
+        },
+        "consentAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when user granted consent"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest login"
+        },
+        "loginCount": {
+          "type": "number",
+          "description": "Cumulative authenticated session count"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update"
+        }
+      },
+      "required": ["uid", "displayName", "email", "university", "createdAt", "updatedAt"]
+    },
+    "UserWorkspaceState": {
+      "title": "UserWorkspaceState",
+      "description": "Per-user isolated workbench progress, completed 75 manuals, completed 20 ESP32 labs, recent work, and custom bookmarks.",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner Firebase Auth UID"
+        },
+        "lastEsp32LessonId": {
+          "type": "number",
+          "description": "Last active ESP32 lesson (1-20)"
+        },
+        "recentWork": {
+          "type": "array",
+          "description": "Bounded recent work history (max 20 entries)"
+        },
+        "simulationActivity": {
+          "type": "array",
+          "description": "Bounded simulation activity log (max 30 entries)"
+        },
+        "savedProjects": {
+          "type": "array",
+          "description": "Bounded custom workspace bookmarks (max 30 entries)"
+        },
+        "completedEsp32Lessons": {
+          "type": "object",
+          "description": "Map of lesson ID to completion boolean"
+        },
+        "completedManuals": {
+          "type": "object",
+          "description": "Map of manual ID to completion boolean"
+        },
+        "completedExperiments": {
+          "type": "array",
+          "description": "List of completed guided experiment IDs"
+        },
+        "settings": {
+          "type": "object",
+          "description": "Per-user workstation preferences (gridPitch, telemetryDecimals, forceReducedMotion, autoSaveEnabled)"
+        },
+        "circuitProgress": {
+          "type": "object",
+          "description": "Optional aggregated correct/incorrect circuit design and simulation metrics"
+        },
+        "knowledgeChecks": {
+          "type": "object",
+          "description": "Map of labId to Post-Lab Knowledge Check quiz score and completion record"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "lastEsp32LessonId",
+        "recentWork",
+        "simulationActivity",
+        "savedProjects",
+        "completedEsp32Lessons",
+        "completedManuals",
+        "completedExperiments",
+        "settings",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserCircuitProject": {
+      "title": "UserCircuitProject",
+      "description": "Per-user saved circuit design, builder schematic, unified project, or auto-save slot stored strictly under the owner's UID.",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner Firebase Auth UID"
+        },
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Validated project ID matching document path"
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["unified_schematic", "builder_circuit", "designer_snapshot", "autosave_slot"],
+          "description": "Type of saved circuit artifact"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "Human-readable project or snapshot title"
+        },
+        "labMode": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Optional lab domain or simulator mode"
+        },
+        "topology": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Optional circuit topology tag"
+        },
+        "circuitData": {
+          "type": "object",
+          "description": "Native Firestore map storing nodes, components, wires, and connections"
+        },
+        "componentCount": {
+          "type": "number",
+          "description": "Number of circuit components"
+        },
+        "wireCount": {
+          "type": "number",
+          "description": "Number of net wires"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "projectId",
+        "kind",
+        "name",
+        "circuitData",
+        "componentCount",
+        "wireCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "LoginAuditLog": {
+      "title": "LoginAuditLog",
+      "description": "Immutable consented sign-in event containing complete user profile snapshot for authorized administrator review.",
+      "type": "object",
+      "properties": {
+        "logId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Unique login audit document ID"
+        },
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Authenticated user UID"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "User full name at time of login"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 200,
+          "description": "Verified account email"
+        },
+        "university": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180,
+          "description": "Academic institution"
+        },
+        "department": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Department name"
+        },
+        "studentId": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Student registration or roll number"
+        },
+        "semester": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Academic semester"
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Optional avatar URL"
+        },
+        "providerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Auth provider identifier"
+        },
+        "emailVerified": {
+          "type": "boolean",
+          "description": "Whether auth email was verified"
+        },
+        "consentGiven": {
+          "type": "boolean",
+          "description": "Must be true to record login audit entry"
+        },
+        "consentVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "description": "Consent notice version"
+        },
+        "userAgentSummary": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Browser platform summary"
+        },
+        "ipAddress": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Recorded client IP address upon explicit user consent"
+        },
+        "location": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Recorded approximate client location upon explicit user consent"
+        },
+        "loggedInAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when user logged in"
+        }
+      },
+      "required": [
+        "logId",
+        "uid",
+        "displayName",
+        "email",
+        "university",
+        "providerId",
+        "emailVerified",
+        "consentGiven",
+        "consentVersion",
+        "loggedInAt"
+      ]
+    },
+    "StudentProgressRecord": {
+      "title": "StudentProgressRecord",
+      "description": "Consented student profile and cumulative circuit design/simulation correctness metrics for Admin Dashboard tracking.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Student Firebase Auth UID matching document ID"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Student full name"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 200,
+          "description": "Verified student email"
+        },
+        "university": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180,
+          "description": "Academic institution"
+        },
+        "department": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Academic department"
+        },
+        "studentId": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "University student ID / roll number"
+        },
+        "semester": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Academic semester"
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Optional avatar URL"
+        },
+        "providerId": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Auth provider identifier"
+        },
+        "consentGiven": {
+          "type": "boolean",
+          "description": "Explicit student consent flag"
+        },
+        "consentAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when consent was confirmed"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of most recent login"
+        },
+        "loginCount": {
+          "type": "number",
+          "description": "Total consented sign-ins"
+        },
+        "correctDesignsCount": {
+          "type": "number",
+          "description": "Count of verified/valid circuit designs completed"
+        },
+        "incorrectDesignsCount": {
+          "type": "number",
+          "description": "Count of circuit designs with open/short/pin verification errors"
+        },
+        "correctSimulationsCount": {
+          "type": "number",
+          "description": "Count of successful circuit simulations"
+        },
+        "incorrectSimulationsCount": {
+          "type": "number",
+          "description": "Count of failed or faulted circuit simulations"
+        },
+        "totalSavedCircuits": {
+          "type": "number",
+          "description": "Total saved circuits in user workspace"
+        },
+        "esp32CompletedCount": {
+          "type": "number",
+          "description": "Completed ESP32 lessons (0-20)"
+        },
+        "manualsCompletedCount": {
+          "type": "number",
+          "description": "Completed laboratory manuals (0-75)"
+        },
+        "experimentsCompletedCount": {
+          "type": "number",
+          "description": "Completed practical experiments (0-50)"
+        },
+        "recentOutcomes": {
+          "type": "array",
+          "description": "Bounded recent circuit design/simulation outcome log (max 20 entries)"
+        },
+        "knowledgeChecksPassed": {
+          "type": "number",
+          "description": "Count of Post-Lab Knowledge Checks passed (>= 2/3)"
+        },
+        "knowledgeChecksAttempted": {
+          "type": "number",
+          "description": "Total Post-Lab Knowledge Checks completed"
+        },
+        "quizCorrectCount": {
+          "type": "number",
+          "description": "Total correct answers across post-lab quizzes"
+        },
+        "quizTotalCount": {
+          "type": "number",
+          "description": "Total questions answered across post-lab quizzes"
+        },
+        "ipAddress": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Latest recorded client IP address upon explicit user consent"
+        },
+        "location": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Latest recorded approximate client location upon explicit user consent"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update"
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "email",
+        "university",
+        "consentGiven",
+        "loginCount",
+        "correctDesignsCount",
+        "incorrectDesignsCount",
+        "correctSimulationsCount",
+        "incorrectSimulationsCount",
+        "totalSavedCircuits",
+        "esp32CompletedCount",
+        "manualsCompletedCount",
+        "experimentsCompletedCount",
+        "recentOutcomes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized instructor/administrator record granting read access to consented login logs and student progress.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Admin Firebase Auth UID"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 200,
+          "description": "Admin verified email"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "instructor"],
+          "description": "Privileged administrative role"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "LivePairingSession": {
+      "title": "LivePairingSession",
+      "description": "Real-time collaborative schematic pairing room capped at strictly 2 authenticated verified students.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 6,
+          "pattern": "^[A-Z0-9]{6}$",
+          "description": "6-character pairing room code matching document ID"
+        },
+        "hostUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Creator student Firebase Auth UID"
+        },
+        "hostName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Host student display name"
+        },
+        "guestUid": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Joined partner Firebase Auth UID (null while waiting)"
+        },
+        "guestName": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Partner student display name"
+        },
+        "maxParticipants": {
+          "type": "number",
+          "description": "Maximum allowed paired participants (strictly 2)"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["waiting", "paired", "closed"],
+          "description": "Current room pairing status"
+        },
+        "revision": {
+          "type": "number",
+          "description": "Monotonically incremented schematic revision counter"
+        },
+        "updatedBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID of student who pushed the latest edit"
+        },
+        "schematic": {
+          "type": "object",
+          "description": "Synchronized schematic workspace snapshot (title, nodes, wires, simulation controls)"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest edit"
+        }
+      },
+      "required": [
+        "code",
+        "hostUid",
+        "hostName",
+        "maxParticipants",
+        "status",
+        "revision",
+        "updatedBy",
+        "schematic",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "LivePairingPresence": {
+      "title": "LivePairingPresence",
+      "description": "Ephemeral cursor coordinates, active selection, and online state for a participant in a live pairing room.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Participant Firebase Auth UID"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Participant display name"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["host", "guest"],
+          "description": "Pairing role"
+        },
+        "color": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 16,
+          "description": "Assigned cursor accent hex color"
+        },
+        "online": {
+          "type": "boolean",
+          "description": "Live connection flag"
+        },
+        "cursorX": {
+          "type": "number",
+          "description": "World-space SVG X coordinate"
+        },
+        "cursorY": {
+          "type": "number",
+          "description": "World-space SVG Y coordinate"
+        },
+        "selectedNodeId": {
+          "type": "number",
+          "description": "Currently selected node ID"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest presence heartbeat"
+        }
+      },
+      "required": ["uid", "displayName", "role", "color", "online", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Owner-only and admin-readable researcher profile, academic info, and consent record"
+    },
+    "/users/{userId}/workspace/{docId}": {
+      "schema": {
+        "$ref": "#/entities/UserWorkspaceState"
+      },
+      "description": "Owner-only workspace state document ('state') isolating progress and bookmarks per user"
+    },
+    "/users/{userId}/projects/{projectId}": {
+      "schema": {
+        "$ref": "#/entities/UserCircuitProject"
+      },
+      "description": "Owner-only collection of saved circuits, version snapshots, and auto-saves"
+    },
+    "/login_logs/{logId}": {
+      "schema": {
+        "$ref": "#/entities/LoginAuditLog"
+      },
+      "description": "Immutable consented login audit log readable by admins and the log owner"
+    },
+    "/student_progress/{userId}": {
+      "schema": {
+        "$ref": "#/entities/StudentProgressRecord"
+      },
+      "description": "Consented student profile and circuit design/simulation correctness summary readable by admins and the owner"
+    },
+    "/admins/{adminUid}": {
+      "schema": {
+        "$ref": "#/entities/AdminUser"
+      },
+      "description": "Trusted database role registry for authorized administrators"
+    },
+    "/live_pairs/{pairId}": {
+      "schema": {
+        "$ref": "#/entities/LivePairingSession"
+      },
+      "description": "Real-time collaborative schematic pairing room restricted to its two verified participants"
+    },
+    "/live_pairs/{pairId}/presence/{uid}": {
+      "schema": {
+        "$ref": "#/entities/LivePairingPresence"
+      },
+      "description": "Real-time cursor and selection presence per pairing participant"
+    }
+  }
+}

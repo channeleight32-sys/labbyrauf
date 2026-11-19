@@ -1,0 +1,745 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-display: "Plus Jakarta Sans", "Chakra Petch", system-ui, sans-serif;
+    --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+
+    --ws-bg-canvas: #0b1220;
+    --ws-bg-surface: #111b2b;
+    --ws-bg-card: #162338;
+    --ws-bg-elevated: #1c2b40;
+    --ws-border: #24344d;
+    --ws-accent-primary: #35bdf2;
+    --ws-accent-secondary: #648cff;
+    --ws-text-primary: #f1f5fa;
+    --ws-text-secondary: #9baac0;
+    --ws-success: #48c99a;
+    --ws-warning: #f1b65b;
+    --ws-error: #f07474;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--ws-bg-canvas);
+    color: var(--ws-text-primary);
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+  }
+
+  code, pre, .font-mono, .tabular-nums {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@keyframes wireFlow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+@keyframes wireFlowReverse {
+  to {
+    stroke-dashoffset: 28;
+  }
+}
+
+@keyframes traceFlow {
+  to {
+    stroke-dashoffset: -284;
+  }
+}
+
+.trace-anim {
+  stroke-dasharray: 24 260;
+  animation: traceFlow 4.2s linear infinite;
+}
+.trace-anim-2 {
+  stroke-dasharray: 24 260;
+  animation: traceFlow 5.4s linear infinite;
+  animation-delay: -1.2s;
+}
+.trace-anim-3 {
+  stroke-dasharray: 24 260;
+  animation: traceFlow 6.4s linear infinite;
+  animation-delay: -2.4s;
+}
+
+/* 3D Rotating Logo Animations */
+@keyframes rotatingLogo3D {
+  0% {
+    transform: perspective(500px) rotateY(0deg);
+  }
+  100% {
+    transform: perspective(500px) rotateY(360deg);
+  }
+}
+
+@keyframes logoSheen {
+  0%, 100% {
+    opacity: 0.1;
+    transform: translateX(-120%) skewX(-20deg);
+  }
+  50% {
+    opacity: 0.65;
+    transform: translateX(120%) skewX(-20deg);
+  }
+}
+
+.animate-rotating-logo {
+  animation: rotatingLogo3D 10s linear infinite;
+  transform-style: preserve-3d;
+}
+
+.animate-rotating-logo:hover {
+  animation-play-state: paused;
+}
+
+.animate-rotating-logo-fast {
+  animation: rotatingLogo3D 6s linear infinite;
+  transform-style: preserve-3d;
+}
+
+.animate-logo-sheen {
+  animation: logoSheen 3.2s ease-in-out infinite;
+}
+
+@keyframes motorRotorSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.motor-rotor-spin {
+  animation: motorRotorSpin 1.1s linear infinite;
+}
+
+.motor-rotor-spin-rev {
+  animation: motorRotorSpin 1.1s linear infinite reverse;
+}
+
+@keyframes acWaveTravel {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.ac-wave-travel {
+  stroke-dasharray: 4 3;
+  animation: acWaveTravel 0.9s linear infinite;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(34, 211, 238, 0.08) 50%,
+    transparent 100%
+  );
+  animation: skeletonShimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trace-anim,
+  .trace-anim-2,
+  .trace-anim-3,
+  .animate-rotating-logo,
+  .animate-rotating-logo-fast,
+  .animate-logo-sheen,
+  .wire-flowing-pulse,
+  .wire-flowing-pulse-rev,
+  .wire-short-circuit-pulse,
+  .wire-short-circuit-dash,
+  .wire-floating-node-pulse,
+  .wire-floating-node-dash,
+  .motor-rotor-spin,
+  .motor-rotor-spin-rev,
+  .ac-wave-travel,
+  .instrument-capture-pulse-osc,
+  .instrument-capture-pulse-la,
+  .instrument-capture-pulse-dual,
+  .instrument-capture-dot,
+  .spice-led-pulse,
+  .spice-led-halo,
+  .spice-cap-charge,
+  .spice-cap-discharge,
+  .spice-relay-armature,
+  .spice-relay-coil,
+  .spice-cable-shimmer,
+  .spice-inductor-flux,
+  .spice-signal-flow,
+  .spice-ic-heartbeat,
+  .skeleton-shimmer::after {
+    animation: none !important;
+  }
+}
+
+html.ws-reduced-motion *,
+html.ws-reduced-motion *::before,
+html.ws-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* Schematic SVG styles for the Interactive Circuit Lab */
+.gsym {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.gsym path,
+.gsym circle,
+.gsym rect {
+  fill: rgba(56, 189, 248, 0.1);
+  stroke: #38bdf8;
+  stroke-width: 2.3;
+  stroke-linejoin: round;
+}
+.gsym .gsym-arc {
+  fill: none;
+}
+.gsym .gsym-txt {
+  fill: #38bdf8;
+  font-size: 16px;
+  font-weight: 700;
+  text-anchor: middle;
+  stroke: none;
+  font-family: "JetBrains Mono", monospace;
+}
+.gsym .gsym-led {
+  fill: #22c55e;
+  stroke: #0f2a1c;
+}
+
+.gate-body {
+  fill: var(--gate-fill, rgba(56, 189, 248, 0.12));
+  stroke: var(--gate-stroke, #38bdf8);
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+  transition: stroke 0.15s ease, fill 0.15s ease;
+}
+.gate-body.on {
+  stroke: #22c55e;
+  fill: var(--gate-fill-on, rgba(34, 197, 94, 0.22));
+}
+.gate-extra {
+  fill: none;
+  stroke: var(--gate-stroke, #38bdf8);
+  stroke-width: 2.4;
+}
+.gate-bubble {
+  fill: var(--gate-bubble-fill, #0d1729);
+  stroke: var(--gate-stroke, #38bdf8);
+  stroke-width: 2.4;
+}
+.gate-bubble.on {
+  stroke: #22c55e;
+}
+.gate-label {
+  fill: var(--gate-label, #f8fafc);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-anchor: middle;
+  pointer-events: none;
+  font-family: "JetBrains Mono", monospace;
+}
+.io-box {
+  fill: var(--io-box-fill, #162540);
+  stroke: var(--io-box-stroke, #38bdf8);
+  stroke-width: 2.2;
+  transition: fill 0.15s ease, stroke 0.15s ease;
+}
+.io-box.hi {
+  fill: rgba(34, 197, 94, 0.22);
+  stroke: #22c55e;
+}
+.io-box.lo {
+  fill: var(--io-box-fill, #101a30);
+  stroke: var(--io-box-stroke, #3c4c6b);
+}
+.io-text {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 19px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+  fill: var(--io-text-color, #94a3b8);
+}
+.io-text.hi {
+  fill: #22c55e;
+}
+.led-dot {
+  transition: fill 0.15s ease;
+}
+.led-dot.hi {
+  fill: #22c55e;
+}
+.led-dot.lo {
+  fill: #23303f;
+}
+
+.port {
+  stroke-width: 2.3;
+  cursor: crosshair;
+}
+.port.in {
+  fill: var(--port-in-fill, #0b1020);
+  stroke: var(--port-stroke, #4a6fa5);
+}
+.port.out {
+  fill: var(--port-out-fill, #4a6fa5);
+  stroke: var(--port-out-stroke, #6b8fd0);
+}
+.port.out.hi {
+  fill: #22c55e;
+  stroke: #86efac;
+}
+.port.in.hi {
+  fill: rgba(34, 197, 94, 0.35);
+  stroke: #86efac;
+}
+.port:hover {
+  stroke: #f59e0b;
+  stroke-width: 3.4;
+}
+.port-hit {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 18;
+  cursor: crosshair;
+}
+
+.wire {
+  fill: none;
+  stroke: var(--wire-off-color, #60799f);
+  stroke-width: 3;
+  pointer-events: none;
+}
+.wire.on {
+  stroke: #22c55e;
+  stroke-width: 3.2;
+}
+.wire-flowing-pulse {
+  animation: wireFlow var(--wire-flow-dur, 0.85s) linear infinite;
+  filter: drop-shadow(0 0 6px var(--wire-glow-color, #22c55e));
+}
+.wire-flowing-pulse-rev {
+  animation: wireFlowReverse var(--wire-flow-dur, 0.85s) linear infinite;
+  filter: drop-shadow(0 0 6px var(--wire-glow-color, #22d3ee));
+}
+.wire.sel {
+  stroke: #ef4444;
+  stroke-dasharray: 7 5;
+}
+.wire.preview {
+  stroke: #f59e0b;
+  stroke-dasharray: 7 6;
+  stroke-width: 2.6;
+}
+.wire.halted {
+  stroke: #f59e0b !important;
+  stroke-dasharray: 6 4 !important;
+  stroke-width: 3px !important;
+}
+
+/* Visual Diagnostic Tool: Pulsing Red Glow for Short Circuits */
+@keyframes shortCircuitPulse {
+  0%, 100% {
+    stroke: #ef4444;
+    stroke-opacity: 0.82;
+    filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.9)) drop-shadow(0 0 12px rgba(239, 68, 68, 0.6));
+  }
+  50% {
+    stroke: #ff3333;
+    stroke-opacity: 1;
+    filter: drop-shadow(0 0 10px #ff2222) drop-shadow(0 0 24px rgba(239, 68, 68, 0.95)) drop-shadow(0 0 38px rgba(239, 68, 68, 0.6));
+  }
+}
+
+@keyframes shortCircuitDash {
+  to {
+    stroke-dashoffset: -26;
+  }
+}
+
+.wire-short-circuit-pulse {
+  animation: shortCircuitPulse 0.85s ease-in-out infinite;
+}
+
+.wire-short-circuit-dash {
+  animation: shortCircuitDash var(--wire-flow-dur, 0.45s) linear infinite;
+}
+
+/* Visual Diagnostic Tool: Pulsing Amber Glow for Floating Nodes */
+@keyframes floatingNodePulse {
+  0%, 100% {
+    stroke: #f59e0b;
+    stroke-opacity: 0.75;
+    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.8)) drop-shadow(0 0 10px rgba(245, 158, 11, 0.5));
+  }
+  50% {
+    stroke: #fbbf24;
+    stroke-opacity: 1;
+    filter: drop-shadow(0 0 8px #fbbf24) drop-shadow(0 0 20px rgba(245, 158, 11, 0.9)) drop-shadow(0 0 32px rgba(245, 158, 11, 0.5));
+  }
+}
+
+@keyframes floatingNodeDash {
+  to {
+    stroke-dashoffset: -22;
+  }
+}
+
+.wire-floating-node-pulse {
+  animation: floatingNodePulse 1.1s ease-in-out infinite;
+}
+
+.wire-floating-node-dash {
+  animation: floatingNodeDash 0.9s linear infinite;
+}
+
+/* Captured Node Visual Indicator: Glowing Pulse for Oscilloscope & Logic Analyzer Nodes */
+@keyframes instrumentCapturePulseOsc {
+  0%, 100% {
+    stroke-opacity: 0.55;
+    fill-opacity: 0.08;
+    filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.55));
+  }
+  50% {
+    stroke-opacity: 1;
+    fill-opacity: 0.2;
+    filter: drop-shadow(0 0 11px rgba(251, 191, 36, 0.95)) drop-shadow(0 0 22px rgba(245, 158, 11, 0.55));
+  }
+}
+
+@keyframes instrumentCapturePulseLa {
+  0%, 100% {
+    stroke-opacity: 0.55;
+    fill-opacity: 0.08;
+    filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.55));
+  }
+  50% {
+    stroke-opacity: 1;
+    fill-opacity: 0.2;
+    filter: drop-shadow(0 0 11px rgba(56, 189, 248, 0.95)) drop-shadow(0 0 22px rgba(6, 182, 212, 0.55));
+  }
+}
+
+@keyframes instrumentCapturePulseDual {
+  0%, 100% {
+    stroke-opacity: 0.6;
+    fill-opacity: 0.1;
+    filter: drop-shadow(0 0 5px rgba(34, 211, 238, 0.65));
+  }
+  50% {
+    stroke-opacity: 1;
+    fill-opacity: 0.22;
+    filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.95)) drop-shadow(0 0 24px rgba(251, 191, 36, 0.6));
+  }
+}
+
+@keyframes instrumentCaptureDotPulse {
+  0%, 100% {
+    opacity: 0.65;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+
+.instrument-capture-pulse-osc {
+  animation: instrumentCapturePulseOsc 1.5s ease-in-out infinite;
+}
+
+.instrument-capture-pulse-la {
+  animation: instrumentCapturePulseLa 1.5s ease-in-out infinite;
+}
+
+.instrument-capture-pulse-dual {
+  animation: instrumentCapturePulseDual 1.4s ease-in-out infinite;
+}
+
+.instrument-capture-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: instrumentCaptureDotPulse 1.3s ease-in-out infinite;
+}
+.gate-body.halted {
+  stroke: #f59e0b !important;
+  stroke-width: 2.8px !important;
+  stroke-dasharray: 6 3;
+  fill: rgba(245, 158, 11, 0.15) !important;
+}
+.io-box.halted {
+  stroke: #f59e0b !important;
+  fill: rgba(245, 158, 11, 0.12) !important;
+}
+.led-dot.halted {
+  fill: #d97706 !important;
+}
+.port.missing-pulse {
+  stroke: #f59e0b;
+  fill: #78350f;
+  animation: pulse-ring 1.5s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+}
+.wire-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 15;
+  cursor: pointer;
+}
+.sel-outline {
+  fill: none;
+  stroke: #ef4444;
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  pointer-events: none;
+}
+
+.comp-box {
+  fill: var(--comp-fill, rgba(18, 32, 58, 0.96));
+  stroke: var(--comp-stroke, #38bdf8);
+  stroke-width: 2.2;
+}
+.comp-label {
+  fill: var(--comp-label, #f8fafc);
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.6px;
+}
+.comp-pin-label {
+  fill: var(--comp-pin-label, #94a3b8);
+  font-size: 8.5px;
+  font-weight: 600;
+  pointer-events: none;
+  font-family: "JetBrains Mono", monospace;
+}
+.seg {
+  stroke-linecap: round;
+}
+.seg.on {
+  stroke: #ef4444;
+}
+.seg.off {
+  stroke: #1a2130;
+}
+
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+  header, nav, aside, .no-print, button {
+    display: none !important;
+  }
+  .print-academic-report {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1.5px solid #0f172a !important;
+    box-shadow: none !important;
+    padding: 1.5rem !important;
+  }
+  .print-academic-report * {
+    color: #0f172a !important;
+    background-color: transparent !important;
+    border-color: #cbd5e1 !important;
+  }
+  .print-academic-report th {
+    background-color: #f1f5f9 !important;
+    font-weight: 700 !important;
+  }
+}
+
+/* ============================================================================
+   Procedural SPICE-Synced Component Signal Animations
+   ============================================================================ */
+@keyframes spiceLedPulse {
+  0%, 100% {
+    opacity: 0.72;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+.spice-led-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spiceLedPulse var(--spice-cycle-dur, 1s) ease-in-out infinite;
+}
+
+@keyframes spiceCapCharge {
+  0% {
+    transform: scaleX(0.28);
+    opacity: 0.65;
+  }
+  55% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(0.32);
+    opacity: 0.7;
+  }
+}
+
+.spice-cap-charge {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: spiceCapCharge var(--spice-cycle-dur, 1.1s) ease-in-out infinite;
+}
+
+@keyframes spiceCapDischarge {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scaleY(0.86);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.06);
+  }
+}
+
+.spice-cap-discharge {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spiceCapDischarge var(--spice-cycle-dur, 1.1s) ease-in-out infinite;
+}
+
+@keyframes spiceRelayArmature {
+  0%, 42% {
+    transform: rotate(-16deg);
+  }
+  50%, 92% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-16deg);
+  }
+}
+
+.spice-relay-armature {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: spiceRelayArmature var(--spice-cycle-dur, 1.2s) cubic-bezier(0.35, 0, 0.25, 1) infinite;
+}
+
+@keyframes spiceRelayCoil {
+  0%, 100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.spice-relay-coil {
+  animation: spiceRelayCoil var(--spice-cycle-dur, 1.2s) ease-in-out infinite;
+}
+
+@keyframes spiceCableShimmer {
+  to {
+    stroke-dashoffset: -36;
+  }
+}
+
+.spice-cable-shimmer {
+  animation: spiceCableShimmer var(--spice-cycle-dur, 0.9s) linear infinite;
+}
+
+@keyframes spiceLedHalo {
+  0%, 100% {
+    opacity: 0.22;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.24);
+  }
+}
+
+.spice-led-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spiceLedHalo var(--spice-cycle-dur, 1s) ease-in-out infinite;
+}
+
+@keyframes spiceInductorFlux {
+  0%, 100% {
+    opacity: 0.35;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    opacity: 1;
+    stroke-dashoffset: -12;
+  }
+}
+
+.spice-inductor-flux {
+  animation: spiceInductorFlux var(--spice-cycle-dur, 1.1s) ease-in-out infinite;
+}
+
+@keyframes spiceSignalFlow {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+.spice-signal-flow {
+  animation: spiceSignalFlow var(--spice-cycle-dur, 1s) ease-in-out infinite;
+}
+
+@keyframes spiceIcHeartbeat {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(0.88);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+
+.spice-ic-heartbeat {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spiceIcHeartbeat var(--spice-cycle-dur, 1s) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}

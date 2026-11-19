@@ -1,0 +1,8 @@
+{
+  "name": "Lab by Rauf",
+  "description": "Complete interactive Digital Logic Design workbench featuring a schematic circuit simulator, logic gate library, K-Map \u0026 Boolean algebra solver, number systems \u0026 Hamming code lab, Mealy/Moore FSM studio, and programmable logic array (PLA) designer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

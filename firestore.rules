@@ -1,0 +1,517 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null
+        && request.auth.uid is string
+        && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email_verified == true && request.auth.token.email == 'rfengineer099@gmail.com')
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isPairCode(id) {
+      return id is string && id.size() == 6 && id.matches('^[A-Z0-9]{6}$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function parentUserExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId))
+        && get(/databases/$(database)/documents/users/$(userId)).data.uid == request.auth.uid;
+    }
+
+    function isLivePairParticipant(pairId) {
+      return exists(/databases/$(database)/documents/live_pairs/$(pairId)) && (
+        get(/databases/$(database)/documents/live_pairs/$(pairId)).data.hostUid == request.auth.uid ||
+        (get(/databases/$(database)/documents/live_pairs/$(pairId)).data.keys().hasAny(['guestUid']) &&
+         get(/databases/$(database)/documents/live_pairs/$(pairId)).data.guestUid == request.auth.uid)
+      );
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'university', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'uid', 'displayName', 'email', 'university', 'department', 'studentId', 'semester',
+          'photoURL', 'providerId', 'consentGiven', 'consentAt', 'lastLoginAt', 'loginCount',
+          'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && data.uid == userId
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 200
+        && data.university is string && data.university.size() >= 1 && data.university.size() <= 180
+        && (!data.keys().hasAny(['department']) || (data.department is string && data.department.size() <= 120))
+        && (!data.keys().hasAny(['studentId']) || (data.studentId is string && data.studentId.size() <= 64))
+        && (!data.keys().hasAny(['semester']) || (data.semester is string && data.semester.size() <= 64))
+        && (!data.keys().hasAny(['photoURL']) || (data.photoURL is string && data.photoURL.size() <= 500))
+        && (!data.keys().hasAny(['providerId']) || (data.providerId is string && data.providerId.size() <= 64))
+        && (!data.keys().hasAny(['consentGiven']) || data.consentGiven is bool)
+        && (!data.keys().hasAny(['consentAt']) || data.consentAt is timestamp || data.consentAt == null)
+        && (!data.keys().hasAny(['lastLoginAt']) || data.lastLoginAt is timestamp)
+        && (!data.keys().hasAny(['loginCount']) || (data.loginCount is number && data.loginCount >= 0 && data.loginCount <= 1000000))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWorkspaceState(data, userId) {
+      return data.keys().hasAll([
+          'ownerUid', 'lastEsp32LessonId', 'recentWork', 'simulationActivity',
+          'savedProjects', 'completedEsp32Lessons', 'completedManuals',
+          'completedExperiments', 'settings', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerUid', 'lastEsp32LessonId', 'recentWork', 'simulationActivity',
+          'savedProjects', 'completedEsp32Lessons', 'completedManuals',
+          'completedExperiments', 'settings', 'circuitProgress', 'knowledgeChecks', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.ownerUid)
+        && data.ownerUid == request.auth.uid
+        && data.ownerUid == userId
+        && data.lastEsp32LessonId is number && data.lastEsp32LessonId >= 1 && data.lastEsp32LessonId <= 20
+        && data.recentWork is list && data.recentWork.size() <= 20
+        && (data.recentWork.size() == 0 || data.recentWork[0] is map)
+        && data.simulationActivity is list && data.simulationActivity.size() <= 30
+        && (data.simulationActivity.size() == 0 || data.simulationActivity[0] is map)
+        && data.savedProjects is list && data.savedProjects.size() <= 30
+        && (data.savedProjects.size() == 0 || data.savedProjects[0] is map)
+        && data.completedEsp32Lessons is map && data.completedEsp32Lessons.keys().size() <= 25
+        && data.completedManuals is map && data.completedManuals.keys().size() <= 100
+        && data.completedExperiments is list && data.completedExperiments.size() <= 50
+        && (data.completedExperiments.size() == 0 || data.completedExperiments[0] is string)
+        && data.settings is map
+        && data.settings.keys().hasAll(['gridPitch', 'telemetryDecimals', 'forceReducedMotion', 'autoSaveEnabled'])
+        && data.settings.keys().hasOnly(['gridPitch', 'telemetryDecimals', 'forceReducedMotion', 'autoSaveEnabled'])
+        && data.settings.gridPitch is number
+        && data.settings.telemetryDecimals is number
+        && data.settings.forceReducedMotion is bool
+        && data.settings.autoSaveEnabled is bool
+        && (!data.keys().hasAny(['circuitProgress']) || data.circuitProgress is map)
+        && (!data.keys().hasAny(['knowledgeChecks']) || (data.knowledgeChecks is map && data.knowledgeChecks.keys().size() <= 150))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCircuitProject(data, userId, projectId) {
+      return data.keys().hasAll([
+          'ownerUid', 'projectId', 'kind', 'name', 'circuitData',
+          'componentCount', 'wireCount', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerUid', 'projectId', 'kind', 'name', 'labMode', 'topology',
+          'circuitData', 'componentCount', 'wireCount', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.ownerUid)
+        && data.ownerUid == request.auth.uid
+        && data.ownerUid == userId
+        && isValidId(data.projectId)
+        && data.projectId == projectId
+        && data.kind in ['unified_schematic', 'builder_circuit', 'designer_snapshot', 'autosave_slot']
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 160
+        && (!data.keys().hasAny(['labMode']) || (data.labMode is string && data.labMode.size() <= 64))
+        && (!data.keys().hasAny(['topology']) || (data.topology is string && data.topology.size() <= 64))
+        && data.circuitData is map
+        && data.componentCount is number && data.componentCount >= 0 && data.componentCount <= 2000
+        && data.wireCount is number && data.wireCount >= 0 && data.wireCount <= 5000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLoginLog(data, logId) {
+      return data.keys().hasAll([
+          'logId', 'uid', 'displayName', 'email', 'university',
+          'providerId', 'emailVerified', 'consentGiven', 'consentVersion', 'loggedInAt'
+        ])
+        && data.keys().hasOnly([
+          'logId', 'uid', 'displayName', 'email', 'university',
+          'department', 'studentId', 'semester', 'photoURL',
+          'providerId', 'emailVerified', 'consentGiven', 'consentVersion',
+          'userAgentSummary', 'ipAddress', 'location', 'loggedInAt'
+        ])
+        && isValidId(data.logId)
+        && data.logId == logId
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 200
+        && data.university is string && data.university.size() >= 1 && data.university.size() <= 180
+        && (!data.keys().hasAny(['department']) || (data.department is string && data.department.size() <= 120))
+        && (!data.keys().hasAny(['studentId']) || (data.studentId is string && data.studentId.size() <= 64))
+        && (!data.keys().hasAny(['semester']) || (data.semester is string && data.semester.size() <= 64))
+        && (!data.keys().hasAny(['photoURL']) || (data.photoURL is string && data.photoURL.size() <= 500))
+        && data.providerId is string && data.providerId.size() >= 1 && data.providerId.size() <= 64
+        && data.emailVerified is bool
+        && data.consentGiven == true
+        && data.consentVersion is string && data.consentVersion.size() >= 1 && data.consentVersion.size() <= 32
+        && (!data.keys().hasAny(['userAgentSummary']) || (data.userAgentSummary is string && data.userAgentSummary.size() <= 200))
+        && (!data.keys().hasAny(['ipAddress']) || (data.ipAddress is string && data.ipAddress.size() <= 64))
+        && (!data.keys().hasAny(['location']) || (data.location is string && data.location.size() <= 160))
+        && data.loggedInAt is timestamp;
+    }
+
+    function isValidStudentProgress(data, userId) {
+      return data.keys().hasAll([
+          'uid', 'displayName', 'email', 'university', 'consentGiven', 'loginCount',
+          'correctDesignsCount', 'incorrectDesignsCount',
+          'correctSimulationsCount', 'incorrectSimulationsCount',
+          'totalSavedCircuits', 'esp32CompletedCount', 'manualsCompletedCount',
+          'experimentsCompletedCount', 'recentOutcomes', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'displayName', 'email', 'university', 'department', 'studentId', 'semester',
+          'photoURL', 'providerId', 'consentGiven', 'consentAt', 'lastLoginAt', 'loginCount',
+          'correctDesignsCount', 'incorrectDesignsCount',
+          'correctSimulationsCount', 'incorrectSimulationsCount',
+          'totalSavedCircuits', 'esp32CompletedCount', 'manualsCompletedCount',
+          'experimentsCompletedCount', 'recentOutcomes',
+          'knowledgeChecksPassed', 'knowledgeChecksAttempted', 'quizCorrectCount', 'quizTotalCount',
+          'ipAddress', 'location',
+          'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && data.uid == userId
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 200
+        && data.university is string && data.university.size() >= 1 && data.university.size() <= 180
+        && (!data.keys().hasAny(['department']) || (data.department is string && data.department.size() <= 120))
+        && (!data.keys().hasAny(['studentId']) || (data.studentId is string && data.studentId.size() <= 64))
+        && (!data.keys().hasAny(['semester']) || (data.semester is string && data.semester.size() <= 64))
+        && (!data.keys().hasAny(['photoURL']) || (data.photoURL is string && data.photoURL.size() <= 500))
+        && (!data.keys().hasAny(['providerId']) || (data.providerId is string && data.providerId.size() <= 64))
+        && data.consentGiven is bool
+        && (!data.keys().hasAny(['consentAt']) || data.consentAt is timestamp || data.consentAt == null)
+        && (!data.keys().hasAny(['lastLoginAt']) || data.lastLoginAt is timestamp)
+        && data.loginCount is number && data.loginCount >= 0 && data.loginCount <= 1000000
+        && data.correctDesignsCount is number && data.correctDesignsCount >= 0 && data.correctDesignsCount <= 100000
+        && data.incorrectDesignsCount is number && data.incorrectDesignsCount >= 0 && data.incorrectDesignsCount <= 100000
+        && data.correctSimulationsCount is number && data.correctSimulationsCount >= 0 && data.correctSimulationsCount <= 100000
+        && data.incorrectSimulationsCount is number && data.incorrectSimulationsCount >= 0 && data.incorrectSimulationsCount <= 100000
+        && data.totalSavedCircuits is number && data.totalSavedCircuits >= 0 && data.totalSavedCircuits <= 5000
+        && data.esp32CompletedCount is number && data.esp32CompletedCount >= 0 && data.esp32CompletedCount <= 20
+        && data.manualsCompletedCount is number && data.manualsCompletedCount >= 0 && data.manualsCompletedCount <= 75
+        && data.experimentsCompletedCount is number && data.experimentsCompletedCount >= 0 && data.experimentsCompletedCount <= 50
+        && data.recentOutcomes is list && data.recentOutcomes.size() <= 20
+        && (data.recentOutcomes.size() == 0 || data.recentOutcomes[0] is map)
+        && (!data.keys().hasAny(['knowledgeChecksPassed']) || (data.knowledgeChecksPassed is number && data.knowledgeChecksPassed >= 0 && data.knowledgeChecksPassed <= 500))
+        && (!data.keys().hasAny(['knowledgeChecksAttempted']) || (data.knowledgeChecksAttempted is number && data.knowledgeChecksAttempted >= 0 && data.knowledgeChecksAttempted <= 500))
+        && (!data.keys().hasAny(['quizCorrectCount']) || (data.quizCorrectCount is number && data.quizCorrectCount >= 0 && data.quizCorrectCount <= 5000))
+        && (!data.keys().hasAny(['quizTotalCount']) || (data.quizTotalCount is number && data.quizTotalCount >= 0 && data.quizTotalCount <= 5000))
+        && (!data.keys().hasAny(['ipAddress']) || (data.ipAddress is string && data.ipAddress.size() <= 64))
+        && (!data.keys().hasAny(['location']) || (data.location is string && data.location.size() <= 160))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLivePair(data, pairId) {
+      return data.keys().hasAll([
+          'code', 'hostUid', 'hostName', 'maxParticipants', 'status',
+          'revision', 'updatedBy', 'schematic', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'code', 'hostUid', 'hostName', 'guestUid', 'guestName',
+          'maxParticipants', 'status', 'revision', 'updatedBy',
+          'schematic', 'createdAt', 'updatedAt'
+        ])
+        && isPairCode(data.code)
+        && data.code == pairId
+        && isValidId(data.hostUid)
+        && data.hostName is string && data.hostName.size() >= 1 && data.hostName.size() <= 120
+        && (!data.keys().hasAny(['guestUid']) || data.guestUid == null || isValidId(data.guestUid))
+        && (!data.keys().hasAny(['guestName']) || data.guestName == null || (data.guestName is string && data.guestName.size() <= 120))
+        && data.maxParticipants == 2
+        && data.status in ['waiting', 'paired', 'closed']
+        && data.revision is number && data.revision >= 0 && data.revision <= 10000000
+        && isValidId(data.updatedBy)
+        && data.schematic is map
+        && data.schematic.keys().hasAll(['title', 'nodes', 'wires', 'isSimRunning', 'clockHz', 'autoClock', 'simSpeed'])
+        && data.schematic.keys().hasOnly(['title', 'nodes', 'wires', 'isSimRunning', 'clockHz', 'autoClock', 'simSpeed'])
+        && data.schematic.title is string && data.schematic.title.size() <= 160
+        && data.schematic.nodes is list && data.schematic.nodes.size() <= 250
+        && (data.schematic.nodes.size() == 0 || data.schematic.nodes[0] is map)
+        && data.schematic.wires is list && data.schematic.wires.size() <= 600
+        && (data.schematic.wires.size() == 0 || data.schematic.wires[0] is map)
+        && data.schematic.isSimRunning is bool
+        && data.schematic.clockHz is number && data.schematic.clockHz >= 0 && data.schematic.clockHz <= 1000
+        && data.schematic.autoClock is bool
+        && data.schematic.simSpeed is number && data.schematic.simSpeed >= 0.05 && data.schematic.simSpeed <= 20
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLivePairPresence(data, uid) {
+      return data.keys().hasAll(['uid', 'displayName', 'role', 'color', 'online', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'role', 'color', 'online', 'cursorX', 'cursorY', 'selectedNodeId', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.uid == uid
+        && data.uid == request.auth.uid
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.role in ['host', 'guest']
+        && data.color is string && data.color.size() >= 4 && data.color.size() <= 16
+        && data.online is bool
+        && (!data.keys().hasAny(['cursorX']) || data.cursorX == null || (data.cursorX is number && data.cursorX >= -20000 && data.cursorX <= 20000))
+        && (!data.keys().hasAny(['cursorY']) || data.cursorY == null || (data.cursorY is number && data.cursorY >= -20000 && data.cursorY <= 20000))
+        && (!data.keys().hasAny(['selectedNodeId']) || data.selectedNodeId == null || data.selectedNodeId is number)
+        && data.updatedAt is timestamp;
+    }
+
+    match /admins/{adminUid} {
+      allow get: if isValidId(adminUid) && (isOwner(adminUid) || isAdmin());
+      allow list, create, update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin() || (isSignedIn() && existing().uid == request.auth.uid);
+
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'email', 'university', 'department', 'studentId', 'semester',
+          'photoURL', 'providerId', 'consentGiven', 'consentAt', 'lastLoginAt', 'loginCount',
+          'updatedAt'
+        ]);
+
+      allow delete: if false;
+
+      match /workspace/{docId} {
+        allow get: if isValidId(userId) && isValidId(docId) && docId == 'state' && isOwner(userId);
+        allow list: if false;
+
+        allow create: if isValidId(userId)
+          && isValidId(docId)
+          && docId == 'state'
+          && isOwner(userId)
+          && isValidWorkspaceState(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && parentUserExists(userId);
+
+        allow update: if isValidId(userId)
+          && isValidId(docId)
+          && docId == 'state'
+          && isOwner(userId)
+          && isValidWorkspaceState(incoming(), userId)
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'lastEsp32LessonId', 'recentWork', 'simulationActivity',
+            'savedProjects', 'completedEsp32Lessons', 'completedManuals',
+            'completedExperiments', 'settings', 'circuitProgress', 'knowledgeChecks', 'updatedAt'
+          ])
+          && parentUserExists(userId);
+
+        allow delete: if isValidId(userId) && isValidId(docId) && docId == 'state' && isOwner(userId);
+      }
+
+      match /projects/{projectId} {
+        allow get: if isValidId(userId) && isValidId(projectId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && existing().ownerUid == request.auth.uid;
+
+        allow create: if isValidId(userId)
+          && isValidId(projectId)
+          && isOwner(userId)
+          && isValidCircuitProject(incoming(), userId, projectId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && parentUserExists(userId);
+
+        allow update: if isValidId(userId)
+          && isValidId(projectId)
+          && isOwner(userId)
+          && isValidCircuitProject(incoming(), userId, projectId)
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().projectId == existing().projectId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'kind', 'name', 'labMode', 'topology', 'circuitData', 'componentCount', 'wireCount', 'updatedAt'
+          ])
+          && parentUserExists(userId);
+
+        allow delete: if isValidId(userId) && isValidId(projectId) && isOwner(userId);
+      }
+    }
+
+    match /login_logs/{logId} {
+      allow get: if isValidId(logId) && (isAdmin() || (isSignedIn() && existing().uid == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && existing().uid == request.auth.uid);
+
+      allow create: if isValidId(logId)
+        && isSignedIn()
+        && isValidLoginLog(incoming(), logId)
+        && incoming().loggedInAt == request.time
+        && parentUserExists(request.auth.uid);
+
+      allow update: if false;
+      allow delete: if isValidId(logId) && (isAdmin() || (isSignedIn() && existing().uid == request.auth.uid));
+    }
+
+    match /student_progress/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin() || (isSignedIn() && existing().uid == request.auth.uid);
+
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidStudentProgress(incoming(), userId)
+        && incoming().consentGiven == true
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && parentUserExists(userId);
+
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidStudentProgress(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'email', 'university', 'department', 'studentId', 'semester',
+          'photoURL', 'providerId', 'consentGiven', 'consentAt', 'lastLoginAt', 'loginCount',
+          'correctDesignsCount', 'incorrectDesignsCount',
+          'correctSimulationsCount', 'incorrectSimulationsCount',
+          'totalSavedCircuits', 'esp32CompletedCount', 'manualsCompletedCount',
+          'experimentsCompletedCount', 'recentOutcomes',
+          'knowledgeChecksPassed', 'knowledgeChecksAttempted', 'quizCorrectCount', 'quizTotalCount',
+          'ipAddress', 'location',
+          'updatedAt'
+        ])
+        && parentUserExists(userId);
+
+      allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
+    }
+
+    match /live_pairs/{pairId} {
+      allow get: if isSignedIn() && isPairCode(pairId) && (
+        resource == null ||
+        existing().hostUid == request.auth.uid ||
+        (existing().keys().hasAny(['guestUid']) && existing().guestUid == request.auth.uid) ||
+        ((!existing().keys().hasAny(['guestUid']) || existing().guestUid == null) && existing().status == 'waiting') ||
+        isAdmin()
+      );
+      allow list: if isAdmin();
+
+      allow create: if isSignedIn()
+        && isPairCode(pairId)
+        && isValidLivePair(incoming(), pairId)
+        && incoming().hostUid == request.auth.uid
+        && incoming().updatedBy == request.auth.uid
+        && (!incoming().keys().hasAny(['guestUid']) || incoming().guestUid == null)
+        && incoming().status == 'waiting'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && parentUserExists(request.auth.uid);
+
+      allow update: if isSignedIn()
+        && isPairCode(pairId)
+        && isValidLivePair(incoming(), pairId)
+        && (
+          isAdmin() || (
+            incoming().code == existing().code &&
+            incoming().hostUid == existing().hostUid &&
+            incoming().maxParticipants == existing().maxParticipants &&
+            incoming().createdAt == existing().createdAt &&
+            incoming().updatedAt == request.time &&
+            existing().status != 'closed' &&
+            (
+              // Action 1: Second verified student joins waiting room
+              ((!existing().keys().hasAny(['guestUid']) || existing().guestUid == null) &&
+                existing().status == 'waiting' &&
+                existing().hostUid != request.auth.uid &&
+                incoming().guestUid == request.auth.uid &&
+                incoming().status == 'paired' &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['guestUid', 'guestName', 'status', 'updatedAt'])) ||
+              // Action 2: Paired host or guest pushes schematic updates
+              ((existing().hostUid == request.auth.uid ||
+                (existing().keys().hasAny(['guestUid']) && existing().guestUid == request.auth.uid)) &&
+                incoming().updatedBy == request.auth.uid &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['schematic', 'revision', 'updatedBy', 'updatedAt'])) ||
+              // Action 3: Guest leaves room cleanly
+              ((existing().keys().hasAny(['guestUid']) && existing().guestUid == request.auth.uid) &&
+                incoming().guestUid == null &&
+                incoming().guestName == null &&
+                incoming().status == 'waiting' &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['guestUid', 'guestName', 'status', 'updatedAt'])) ||
+              // Action 4: Host closes pairing session
+              (existing().hostUid == request.auth.uid &&
+                incoming().status == 'closed' &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+            )
+          )
+        );
+
+      allow delete: if isPairCode(pairId) && isSignedIn() && (existing().hostUid == request.auth.uid || isAdmin());
+
+      match /presence/{uid} {
+        allow get: if isSignedIn() && isPairCode(pairId) && isValidId(uid) && isLivePairParticipant(pairId);
+        allow list: if false;
+
+        allow create: if isSignedIn()
+          && isPairCode(pairId)
+          && isValidId(uid)
+          && isOwner(uid)
+          && isValidLivePairPresence(incoming(), uid)
+          && incoming().updatedAt == request.time
+          && isLivePairParticipant(pairId);
+
+        allow update: if isSignedIn()
+          && isPairCode(pairId)
+          && isValidId(uid)
+          && isOwner(uid)
+          && isValidLivePairPresence(incoming(), uid)
+          && incoming().uid == existing().uid
+          && incoming().role == existing().role
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'displayName', 'color', 'online', 'cursorX', 'cursorY', 'selectedNodeId', 'updatedAt'
+          ])
+          && isLivePairParticipant(pairId);
+
+        allow delete: if isSignedIn()
+          && isPairCode(pairId)
+          && isValidId(uid)
+          && (
+            isOwner(uid) ||
+            (exists(/databases/$(database)/documents/live_pairs/$(pairId)) && get(/databases/$(database)/documents/live_pairs/$(pairId)).data.hostUid == request.auth.uid) ||
+            isAdmin()
+          );
+      }
+    }
+  }
+}
